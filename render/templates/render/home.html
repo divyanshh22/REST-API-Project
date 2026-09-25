@@ -73,9 +73,10 @@
             const td = document.createElement('td');
 
             // textContent, not innerHTML. This is the bit worth remembering.
-            // innerHTML would treat a value as code, so a student named
-            // <script>...</script> could run in the browser. textContent always
-            // treats it as plain text, which is why database content is safe.
+            // innerHTML would treat a value as code, so a student whose name
+            // contained a script tag could run in someone's browser. textContent
+            // always treats the value as plain text, which is why data coming
+            // out of the database is safe to drop straight onto the page.
             td.textContent = value === null || value === undefined ? '-' : value;
 
             if (index === 2) td.style.fontWeight = '600';
