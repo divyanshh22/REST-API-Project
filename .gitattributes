@@ -1,0 +1,22 @@
+# Normalise line endings so the same file does not look "changed" on every
+# machine. Without this, a Windows checkout and a Linux checkout can each end up
+# rewriting every single file, which makes diffs impossible to read.
+
+* text=auto
+
+*.py    text diff=python
+*.html  text diff=html
+*.css   text
+*.js    text
+*.md    text
+*.txt   text
+
+# Anything binary must never be line-ending converted, or git corrupts it.
+*.sqlite3 binary
+*.db    binary
+*.png   binary
+*.jpg   binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.zip   binary

@@ -1,0 +1,81 @@
+{% extends 'render/base.html' %}
+
+{% block title %}About | Student Manager{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>About This Project</h1>
+    <p class="subtitle">A small Django + Django REST Framework student management app.</p>
+
+    <h2>Stack</h2>
+    <ul style="margin-left: 20px; margin-bottom: 18px;">
+        <li>Django 6.1 with SQLite</li>
+        <li>Django REST Framework for the JSON API</li>
+        <li>Django templates for the HTML pages</li>
+    </ul>
+
+    <h2>Pages</h2>
+    <ul style="margin-left: 20px; margin-bottom: 18px;">
+        <li><a href="{% url 'Home-View' %}">Home</a> &mdash; live list, with edit and delete links per row</li>
+        <li><a href="{% url 'Add-View' %}">Add</a> &mdash; POST a new student</li>
+        <li><a href="{% url 'Update-View' %}">Update</a> &mdash; PUT every field at once</li>
+        <li><a href="{% url 'Partial-Update-View' %}">Partial Update</a> &mdash; PATCH only the changed fields</li>
+        <li><a href="{% url 'Delete-View' %}">Delete</a> &mdash; DELETE a student</li>
+    </ul>
+
+    <h2>API endpoints</h2>
+    <table style="margin-bottom: 18px;">
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>URL</th>
+                <th>Purpose</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>GET</td>
+                <td><code>{% url 'student-list' %}</code></td>
+                <td>List all students</td>
+            </tr>
+            <tr>
+                <td>POST</td>
+                <td><code>{% url 'student-list' %}</code></td>
+                <td>Create a student</td>
+            </tr>
+            <tr>
+                <td>GET</td>
+                <td><code>{% url 'student-list' %}1/</code></td>
+                <td>Retrieve one student</td>
+            </tr>
+            <tr>
+                <td>PUT</td>
+                <td><code>{% url 'student-list' %}1/update/</code></td>
+                <td>Full update</td>
+            </tr>
+            <tr>
+                <td>PATCH</td>
+                <td><code>{% url 'student-list' %}1/partial-update/</code></td>
+                <td>Partial update</td>
+            </tr>
+            <tr>
+                <td>DELETE</td>
+                <td><code>{% url 'student-list' %}1/delete/</code></td>
+                <td>Delete a student</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>How the forms talk to the API</h2>
+    <p>
+        Each form reads Django's <code>{% verbatim %}{% csrf_token %}{% endverbatim %}</code> token and sends it in the
+        <code>X-CSRFToken</code> header. Validation errors returned by the API are rendered directly under the
+        matching field, and the shared request helpers live in <code>base.html</code>.
+    </p>
+    <p>
+        Right now the API is anonymous, so DRF's <code>SessionAuthentication</code> does not enforce CSRF and
+        requests work either way. As soon as you add login, that header becomes mandatory &mdash; the forms already
+        send it, so nothing will break.
+    </p>
+</div>
+{% endblock %}

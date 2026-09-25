@@ -1,0 +1,164 @@
+{% extends 'render/base.html' %}
+
+{% block title %}Home | Student Manager{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="toolbar">
+        <div>
+            <h1>Student List</h1>
+            <p class="subtitle">Fetched live from the DRF GET endpoint</p>
+        </div>
+        <div class="actions">
+            <span class="count" id="count">Loading...</span>
+            <a class="btn btn-outline" href="{% url 'Add-View' %}">+ Add Student</a>
+            <button class="btn" id="refreshBtn" type="button">Refresh</button>
+        </div>
+    </div>
+
+    <div class="alert alert-error" id="errorAlert"></div>
+
+    {# The table ships hidden and only appears once data has arrived. Without  #}
+    {# this you would see an empty table flashing before the first row lands. #}
+    <p class="note">
+        API base: <code>{% url 'student-list' %}</code> &mdash; read, create, update, patch and delete are all live.
+    </p>
+
+    <div id="message" class="count" style="margin: 18px 0;">Fetching data&hellip;</div>
+
+    <table id="studentTable" style="display: none;">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Student ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        {# Empty on purpose. Every row below gets built in JavaScript.        #}
+        <tbody id="studentBody"></tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    // Grabbing the elements once at the top instead of searching for them
+    // inside the loop. getElementById is not free, so this is the tidier habit.
+    const table = document.getElementById('studentTable');
+    const body = document.getElementById('studentBody');
+    const message = document.getElementById('message');
+    const countLabel = document.getElementById('count');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    // The "before" state. Resetting everything here rather than in each of the
+    // three outcomes below keeps that logic from being repeated.
+    function showLoading() {
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = 'Loading...';
+        table.style.display = 'none';
+        message.style.display = 'block';
+        message.textContent = 'Fetching data...';
+        countLabel.textContent = 'Loading...';
+    }
+
+    // Turns one student object into one <tr>. The API already sends the field
+    // names, so the loop below covers all the data columns without naming them.
+    function buildRow(item) {
+        const tr = document.createElement('tr');
+
+        [item.id, item.student_id, item.student_name, item.student_email, item.student_ph].forEach((value, index) => {
+            const td = document.createElement('td');
+
+            // textContent, not innerHTML. This is the bit worth remembering.
+            // innerHTML would treat a value as code, so a student named
+            // <script>...</script> could run in the browser. textContent always
+            // treats it as plain text, which is why database content is safe.
+            td.textContent = value === null || value === undefined ? '-' : value;
+
+            if (index === 2) td.style.fontWeight = '600';
+            tr.appendChild(td);
+        });
+
+        // The Actions cell. Each link carries ?id= so the form it opens knows
+        // which record to load - that is the whole handoff between the two pages.
+        const actions = document.createElement('td');
+        actions.className = 'row-actions';
+
+        [
+            { label: 'Edit', url: "{% url 'Partial-Update-View' %}?id=" + item.id },
+            { label: 'Full update', url: "{% url 'Update-View' %}?id=" + item.id },
+            { label: 'Delete', url: "{% url 'Delete-View' %}?id=" + item.id }
+        ].forEach(link => {
+            const anchor = document.createElement('a');
+            anchor.className = 'row-link';
+            anchor.href = link.url;
+            anchor.textContent = link.label;
+            actions.appendChild(anchor);
+        });
+
+        tr.appendChild(actions);
+        return tr;
+    }
+
+    function renderTable(students) {
+        body.innerHTML = '';   // only here, where we are deliberately wiping
+        students.forEach(student => body.appendChild(buildRow(student)));
+        table.style.display = 'table';
+        countLabel.textContent = students.length + (students.length === 1 ? ' student' : ' students');
+    }
+
+    // Empty and error are different situations, so they get different wording.
+    // "No students" means the API worked and the table is honestly empty.
+    function renderEmpty() {
+        table.style.display = 'none';
+        message.style.display = 'block';
+        message.textContent = 'No students found.';
+        countLabel.textContent = '0 students';
+    }
+
+    function renderError() {
+        table.style.display = 'none';
+        message.style.display = 'block';
+        message.textContent = 'Failed to load data. Is the server running?';
+        countLabel.textContent = 'Error';
+    }
+
+    async function loadStudents() {
+        showLoading();
+        hideAlert('errorAlert');
+
+        try {
+            // This one line is the whole frontend-to-backend conversation.
+            // apiRequest sends the GET and waits for the reply. The await is the
+            // important part - it pauses here until the JSON is in hand, so the
+            // next line can safely use it.
+            const students = await apiRequest(API.list, 'GET');
+
+            if (students.length === 0) {
+                renderEmpty();
+            } else {
+                message.style.display = 'none';
+                renderTable(students);
+            }
+        } catch (error) {
+            // Only reached if the server is down, the URL is wrong, or the
+            // request came back 4xx/5xx. Check the browser console to see which.
+            console.error(error);
+            renderError();
+            showAlert('errorAlert', 'error', 'Could not reach ' + API.list + '. Make sure the Django server is running.');
+        } finally {
+            // finally runs either way, so the button cannot get stuck disabled
+            // if the request fails.
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = 'Refresh';
+        }
+    }
+
+    // Runs once when the page opens. The Refresh button just calls it again.
+    refreshBtn.addEventListener('click', loadStudents);
+    loadStudents();
+</script>
+{% endblock %}

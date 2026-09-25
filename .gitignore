@@ -1,0 +1,45 @@
+# Byte-compiled Python. Regenerated automatically, never worth committing.
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments - these are large and machine specific.
+venv/
+.venv/
+env/
+ENV/
+
+# The SQLite file holds real student records and is not part of the source
+# code. Anyone who clones the repo can rebuild it with:
+#   python manage.py migrate
+db.sqlite3
+db.sqlite3-journal
+*.sqlite3
+
+# PyCharm / JetBrains project settings. Personal to each developer.
+.idea/
+*.iml
+
+# VS Code settings
+.vscode/
+
+# Environment variables and secrets. .env.example is the one file that is
+# meant to be committed, which is why it is explicitly un-ignored below.
+.env
+.env.*
+!.env.example
+
+# OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test and coverage output
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Compiled media uploads. Code should never carry user uploaded files.
+media/
+staticfiles/

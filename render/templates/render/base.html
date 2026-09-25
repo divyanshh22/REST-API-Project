@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Student Manager{% endblock %}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0f172a;
+            --card: #ffffff;
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --danger: #dc2626;
+        }
+
+        body {
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f3f4f6;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        header {
+            background: var(--bg);
+            color: #fff;
+            padding: 18px 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .brand {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: .5px;
+        }
+
+        .brand span { color: #a5b4fc; }
+
+        nav {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        nav a {
+            color: #cbd5f5;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: .9rem;
+            border: 1px solid #334155;
+            transition: .2s;
+        }
+
+        nav a:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+        main { padding: 32px 0 60px; }
+
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 26px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+        }
+
+        h1 { font-size: 1.6rem; margin-bottom: 6px; }
+        h2 { font-size: 1.15rem; margin-bottom: 14px; }
+        .subtitle { color: var(--muted); margin-bottom: 22px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: .95rem;
+        }
+
+        th {
+            background: #eef2ff;
+            color: #3730a3;
+            text-transform: uppercase;
+            font-size: .78rem;
+            letter-spacing: .5px;
+        }
+
+        tbody tr:hover { background: #f9fafb; }
+
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: .92rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: .2s;
+        }
+
+        .btn:hover { background: var(--primary-dark); }
+        .btn:disabled { opacity: .6; cursor: not-allowed; }
+        .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+        .btn-outline:hover { background: var(--primary); color: #fff; }
+        .btn-danger { background: var(--danger); }
+
+        label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 6px; }
+
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: .95rem;
+            margin-bottom: 16px;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, .15);
+        }
+
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+
+        .note {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: .9rem;
+            color: #78350f;
+            margin-top: 20px;
+        }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .count { color: var(--muted); font-size: .9rem; }
+        footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 20px 0; }
+
+        .alert {
+            display: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: .9rem;
+            margin-bottom: 18px;
+        }
+
+        .alert.show { display: block; }
+        .alert-error { background: #fef2f2; border-left: 4px solid var(--danger); color: #991b1b; }
+        .alert-success { background: #ecfdf5; border-left: 4px solid #059669; color: #065f46; }
+        .alert-info { background: #eff6ff; border-left: 4px solid #2563eb; color: #1e40af; }
+
+        .field-error { color: var(--danger); font-size: .82rem; display: block; margin: -10px 0 14px; }
+
+        .row-link { color: var(--primary); text-decoration: none; font-size: .85rem; font-weight: 600; }
+        .row-link:hover { text-decoration: underline; }
+        .row-actions { white-space: nowrap; }
+        .row-actions a { margin-right: 10px; }
+
+        .loading-row { text-align: center; color: var(--muted); padding: 24px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <div class="brand">Student<span>Manager</span></div>
+        <nav>
+            <a href="{% url 'Home-View' %}">Home</a>
+            <a href="{% url 'Add-View' %}">Add</a>
+            <a href="{% url 'Update-View' %}">Update</a>
+            <a href="{% url 'Partial-Update-View' %}">Partial Update</a>
+            <a href="{% url 'Delete-View' %}">Delete</a>
+            <a href="{% url 'About-View' %}">About</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</main>
+
+<footer>
+    <div class="container">Django REST Framework tutorial project</div>
+</footer>
+
+{% block scripts %}
+<script>
+    // Everything in this <script> is shared by every page that extends base.html,
+    // so a page only has to write the bits that are specific to it (see the
+    // page_scripts block below). Four small helpers live here:
+    //   apiRequest()      - does the talking to Django
+    //   getCsrfToken()    - grabs the security token
+    //   showFieldErrors() - puts API errors next to the right input
+    //   setBusy()         - stops double clicks while saving
+
+    // All the API paths in one place. These are Django template tags, so the
+    // real paths get written into the page when Django renders it. That is why
+    // no URL is ever typed by hand - move a route in urls.py and this follows.
+    const API = {
+        list: "{% url 'student-list' %}",
+        detail: (id) => "{% url 'student-list' %}" + id + "/",
+        update: (id) => "{% url 'student-list' %}" + id + "/update/",
+        partialUpdate: (id) => "{% url 'student-list' %}" + id + "/partial-update/",
+        remove: (id) => "{% url 'student-list' %}" + id + "/delete/"
+    };
+
+    // Tiny cookie reader. We need the csrftoken cookie as a fallback, though
+    // normally the hidden form field below is the one that does the work.
+    function getCookie(name) {
+        const parts = ('; ' + document.cookie).split('; ' + name + '=');
+        return parts.length === 2 ? parts.pop().split(';').shift() : '';
+    }
+
+    // {% csrf_token %} in a form writes the token into a hidden input, so the
+    // easiest place to get it is straight out of the DOM. The cookie is only
+    // the backup for the rare case where a page has no form on it.
+    //
+    // Worth knowing: because your API is anonymous right now, Django does not
+    // actually check this token on write requests. The day you add login, it
+    // starts checking, and since these forms already send it, nothing breaks.
+    function getCsrfToken() {
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        return input ? input.value : getCookie('csrftoken');
+    }
+
+    // The Edit / Delete links on the home page arrive as ?id=1, so this is how
+    // each form finds out which record it is supposed to load.
+    function getRecordId() {
+        return new URLSearchParams(window.location.search).get('id');
+    }
+
+    // The single point where the frontend talks to Django. Every form calls this
+    // instead of using fetch() directly, which means error handling, JSON
+    // parsing and the CSRF header are written once rather than five times.
+    async function apiRequest(url, method, data) {
+        const options = {
+            method: method,
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            }
+        };
+
+        // A GET must not carry a body, so Content-Type and body are only added
+        // when there is actually something to send.
+        if (data !== undefined) {
+            options.headers['Content-Type'] = 'application/json';
+            options.body = JSON.stringify(data);
+        }
+
+        const response = await fetch(url, options);
+
+        // We read the body as plain text first, then convert it by hand. That
+        // looks odd but it is deliberate: a 204 from DELETE comes back with an
+        // empty body, and JSON.parse('') would throw. Checking for empty text
+        // first keeps that case quiet.
+        const text = await response.text();
+        let payload = null;
+
+        if (text) {
+            try {
+                payload = JSON.parse(text);
+            } catch (error) {
+                payload = text;
+            }
+        }
+
+        // A 4xx or 5xx is not an exception, it is a normal reply - fetch only
+        // rejects on a genuine network failure. So we check response.ok by hand
+        // and build our own Error to throw, carrying the status and the JSON
+        // body along. That is what lets each form say "404, no such student".
+        if (!response.ok) {
+            const failure = new Error('Request failed with status ' + response.status);
+            failure.status = response.status;
+            failure.data = payload;
+            throw failure;
+        }
+
+        return payload;
+    }
+
+    // The coloured banner at the top of a form. Kept as a tiny helper because
+    // every form needs a success message and an error message in the same place.
+    function showAlert(id, type, text) {
+        const box = document.getElementById(id);
+        if (!box) return;
+        box.className = 'alert alert-' + type + ' show';
+        box.textContent = text;
+    }
+
+    function hideAlert(id) {
+        const box = document.getElementById(id);
+        if (box) box.className = 'alert';
+    }
+
+    // Errors are cleared before every attempt, otherwise a fixed mistake would
+    // stay on screen after the student fixed it.
+    function clearFieldErrors(form) {
+        form.querySelectorAll('.field-error').forEach(node => node.remove());
+    }
+
+    // The API sends errors back keyed by field name, for example
+    // {"student_email": ["Enter a valid email address."]}. Because the input
+    // names match those keys exactly, we can drop each message right under the
+    // field it belongs to. It also returns a summary string for the banner.
+    function showFieldErrors(form, errors) {
+        clearFieldErrors(form);
+
+        if (!errors || typeof errors !== 'object' || Array.isArray(errors)) {
+            return 'Please check the form and try again.';
+        }
+
+        let firstMessage = 'Please fix the highlighted fields.';
+        let isFirst = true;
+
+        Object.keys(errors).forEach(field => {
+            const messages = Array.isArray(errors[field]) ? errors[field] : [errors[field]];
+            const input = form.querySelector('[name="' + field + '"]');
+
+            if (input) {
+                const span = document.createElement('span');
+                span.className = 'field-error';
+                span.textContent = messages.join(' ');
+                input.parentNode.insertBefore(span, input.nextSibling);
+            }
+
+            if (isFirst) {
+                firstMessage = field + ': ' + messages.join(' ');
+                isFirst = false;
+            }
+        });
+
+        return firstMessage;
+    }
+
+    // Disables the submit button while the request is in flight. Without this,
+    // an impatient double click fires two POSTs and you get a duplicate record
+    // or a confusing "already exists" error. The original label is stashed in a
+    // data attribute so it can be put back exactly as it was.
+    function setBusy(form, busy, label) {
+        const button = form.querySelector('button[type=submit]');
+        if (!button) return;
+        if (busy) {
+            button.dataset.label = button.textContent;
+            button.textContent = label;
+            button.disabled = true;
+        } else {
+            button.textContent = button.dataset.label || button.textContent;
+            button.disabled = false;
+        }
+    }
+</script>
+
+{% block page_scripts %}{% endblock %}
+{% endblock %}
+
+</body>
+</html>

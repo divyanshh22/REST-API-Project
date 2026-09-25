@@ -1,0 +1,148 @@
+{% extends 'render/base.html' %}
+
+{% block title %}Partial Update | Student Manager{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Partial Update</h1>
+    <p class="subtitle">Update via <code>PATCH</code> &mdash; only the fields you fill in are sent</p>
+
+    <div class="alert alert-info" id="infoAlert">Enter the record ID below, then press Load to fetch current values.</div>
+    <div class="alert alert-error" id="errorAlert"></div>
+    <div class="alert alert-success" id="successAlert"></div>
+
+    <form id="studentForm">
+        {% csrf_token %}
+
+        <label for="recordId">Record ID (from the database)</label>
+        <div class="actions" style="margin-bottom: 16px;">
+            <input type="number" id="recordId" name="id" placeholder="e.g. 1" style="max-width: 160px; margin-bottom: 0;" required>
+            <button class="btn btn-outline" type="button" id="loadBtn">Load</button>
+        </div>
+
+        <label for="studentName">Full Name</label>
+        <input type="text" id="studentName" name="student_name" placeholder="Leave blank to keep current value" maxlength="50">
+
+        <label for="studentEmail">Email</label>
+        <input type="email" id="studentEmail" name="student_email" placeholder="Leave blank to keep current value">
+
+        <label for="studentPh">Phone Number</label>
+        <input type="tel" id="studentPh" name="student_ph" placeholder="Leave blank to keep current value">
+
+        <div class="actions">
+            <button class="btn" type="submit">Patch Changes</button>
+            <a class="btn btn-outline" href="{% url 'Home-View' %}">Cancel</a>
+        </div>
+    </form>
+
+    <p class="note">Blank inputs are skipped, so you can change just one field without touching the rest.</p>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    const form = document.getElementById('studentForm');
+    const recordInput = document.getElementById('recordId');
+    const loadBtn = document.getElementById('loadBtn');
+
+    function fill(student) {
+        document.getElementById('studentName').value = student.student_name;
+        document.getElementById('studentEmail').value = student.student_email;
+        document.getElementById('studentPh').value = student.student_ph;
+    }
+
+    // This is the one bit of logic that makes PATCH feel like PATCH.
+    // An empty input is left out of the object entirely, so the key never
+    // reaches the server and the existing value stays as it is. If we sent an
+    // empty string instead, we would be overwriting the field with nothing.
+    function collect() {
+        const payload = {};
+        const fields = [
+            ['student_name', 'studentName'],
+            ['student_email', 'studentEmail'],
+            ['student_ph', 'studentPh']
+        ];
+
+        fields.forEach(([key, elementId]) => {
+            const value = document.getElementById(elementId).value.trim();
+            if (value !== '') payload[key] = value;
+        });
+
+        return payload;
+    }
+
+    async function loadStudent() {
+        const id = recordInput.value.trim();
+
+        if (!id) {
+            showAlert('errorAlert', 'error', 'Please enter a record ID first.');
+            return;
+        }
+
+        hideAlert('successAlert');
+        clearFieldErrors(form);
+        setBusy(form, true, 'Loading...');
+
+        try {
+            fill(await apiRequest(API.detail(id), 'GET'));
+            hideAlert('infoAlert');
+            showAlert('successAlert', 'success', 'Current values loaded. Change what you need and save.');
+        } catch (error) {
+            showAlert('errorAlert', 'error', error.status === 404 ? 'No student found with ID ' + id + '.' : 'Could not load the record.');
+        } finally {
+            setBusy(form, false);
+        }
+    }
+
+    loadBtn.addEventListener('click', loadStudent);
+
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const id = recordInput.value.trim();
+
+        if (!id) {
+            showAlert('errorAlert', 'error', 'Please enter a record ID first.');
+            return;
+        }
+
+        const payload = collect();
+
+        // Nothing filled in means nothing to send, so we stop here rather than
+        // firing off a pointless request.
+        if (Object.keys(payload).length === 0) {
+            showAlert('errorAlert', 'error', 'Fill in at least one field before saving.');
+            return;
+        }
+
+        hideAlert('errorAlert');
+        hideAlert('successAlert');
+        clearFieldErrors(form);
+        setBusy(form, true, 'Patching...');
+
+        try {
+            const updated = await apiRequest(API.partialUpdate(id), 'PATCH', payload);
+
+            // Refill from the reply so the boxes show the saved state. Anything
+            // left untouched is now displayed with its real current value.
+            fill(updated);
+            showAlert('successAlert', 'success', 'Changes saved. Redirecting...');
+            setTimeout(function () {
+                window.location.href = "{% url 'Home-View' %}";
+            }, 1200);
+        } catch (error) {
+            const message = showFieldErrors(form, error.data);
+            showAlert('errorAlert', 'error', error.status === 404 ? 'No student found with ID ' + id + '.' : message);
+        } finally {
+            setBusy(form, false);
+        }
+    });
+
+    // Coming straight from the "Edit" link on the home page, the id is already
+    // in the query string, so the form opens on the right record.
+    const presetId = getRecordId();
+    if (presetId) {
+        recordInput.value = presetId;
+        loadStudent();
+    }
+</script>
+{% endblock %}

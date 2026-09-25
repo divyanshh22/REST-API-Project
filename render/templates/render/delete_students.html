@@ -1,0 +1,125 @@
+{% extends 'render/base.html' %}
+
+{% block title %}Delete Student | Student Manager{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Delete Student</h1>
+    <p class="subtitle">Removes the record via <code>DELETE</code> &mdash; this cannot be undone</p>
+
+    <div class="alert alert-info" id="infoAlert">Enter the record ID below, then press Load to see who you are deleting.</div>
+    <div class="alert alert-error" id="errorAlert"></div>
+    <div class="alert alert-success" id="successAlert"></div>
+
+    <form id="studentForm">
+        {% csrf_token %}
+
+        <label for="recordId">Record ID (from the database)</label>
+        <div class="actions" style="margin-bottom: 16px;">
+            <input type="number" id="recordId" name="id" placeholder="e.g. 1" style="max-width: 160px; margin-bottom: 0;" required>
+            <button class="btn btn-outline" type="button" id="loadBtn">Load</button>
+        </div>
+
+        <div class="alert alert-info" id="previewAlert" style="display: none;"></div>
+
+        <label for="confirm">Type <strong>DELETE</strong> to confirm</label>
+        <input type="text" id="confirm" name="confirm" placeholder="DELETE" autocomplete="off">
+
+        <div class="actions">
+            <button class="btn btn-danger" type="submit">Delete Student</button>
+            <a class="btn btn-outline" href="{% url 'Home-View' %}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    const form = document.getElementById('studentForm');
+    const recordInput = document.getElementById('recordId');
+    const confirmInput = document.getElementById('confirm');
+    const loadBtn = document.getElementById('loadBtn');
+    const previewAlert = document.getElementById('previewAlert');
+
+    // Deleting is the one action that cannot be undone, so before anything is
+    // sent we show exactly who is about to go. A wrong id is much easier to
+    // spot when you can see the name.
+    function showPreview(student) {
+        previewAlert.style.display = 'block';
+        previewAlert.textContent = 'You are about to delete: ' + student.student_name
+            + ' (ID ' + student.student_id + ', ' + student.student_email + ')';
+    }
+
+    async function loadStudent() {
+        const id = recordInput.value.trim();
+
+        if (!id) {
+            showAlert('errorAlert', 'error', 'Please enter a record ID first.');
+            return;
+        }
+
+        hideAlert('successAlert');
+        clearFieldErrors(form);
+        setBusy(form, true, 'Loading...');
+
+        try {
+            showPreview(await apiRequest(API.detail(id), 'GET'));
+            hideAlert('infoAlert');
+        } catch (error) {
+            previewAlert.style.display = 'none';
+            showAlert('errorAlert', 'error', error.status === 404 ? 'No student found with ID ' + id + '.' : 'Could not load the record.');
+        } finally {
+            setBusy(form, false);
+        }
+    }
+
+    loadBtn.addEventListener('click', loadStudent);
+
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const id = recordInput.value.trim();
+
+        if (!id) {
+            showAlert('errorAlert', 'error', 'Please enter a record ID first.');
+            return;
+        }
+
+        // Deliberate extra step. This is a client-side speed bump, not real
+        // security - the API itself is still open to anyone who calls it
+        // directly. It exists to catch a mis-click while typing.
+        if (confirmInput.value.trim().toUpperCase() !== 'DELETE') {
+            showAlert('errorAlert', 'error', 'Please type DELETE in the confirmation box to proceed.');
+            return;
+        }
+
+        hideAlert('errorAlert');
+        hideAlert('successAlert');
+        setBusy(form, true, 'Deleting...');
+
+        try {
+            // No data argument at all, which is right for DELETE. The API replies
+            // 204 with an empty body, and apiRequest copes with that quietly.
+            await apiRequest(API.remove(id), 'DELETE');
+
+            form.reset();
+            previewAlert.style.display = 'none';
+            showAlert('successAlert', 'success', 'Student deleted. Redirecting...');
+            setTimeout(function () {
+                window.location.href = "{% url 'Home-View' %}";
+            }, 1200);
+        } catch (error) {
+            showAlert('errorAlert', 'error', error.status === 404 ? 'No student found with ID ' + id + '.' : 'Delete failed, please try again.');
+        } finally {
+            setBusy(form, false);
+        }
+    });
+
+    // Arriving from the "Delete" link on the home page, so the record is
+    // already identified and the preview is on screen straight away.
+    const presetId = getRecordId();
+    if (presetId) {
+        recordInput.value = presetId;
+        loadStudent();
+    }
+</script>
+{% endblock %}

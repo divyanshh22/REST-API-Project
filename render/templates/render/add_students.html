@@ -1,0 +1,85 @@
+{% extends 'render/base.html' %}
+
+{% block title %}Add Student | Student Manager{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Add Student</h1>
+    <p class="subtitle">Creates a new record via <code>POST {% url 'student-list' %}</code></p>
+
+    <div class="alert alert-error" id="errorAlert"></div>
+    <div class="alert alert-success" id="successAlert"></div>
+
+    <form id="studentForm">
+        {% csrf_token %}
+
+        <label for="studentId">Student ID</label>
+        <input type="number" id="studentId" name="student_id" placeholder="e.g. 104" required>
+
+        <label for="studentName">Full Name</label>
+        <input type="text" id="studentName" name="student_name" placeholder="e.g. Rahul Kumar" maxlength="50" required>
+
+        <label for="studentEmail">Email</label>
+        <input type="email" id="studentEmail" name="student_email" placeholder="e.g. rahul@example.com" required>
+
+        <label for="studentPh">Phone Number</label>
+        <input type="tel" id="studentPh" name="student_ph" placeholder="10 digit mobile number" required>
+
+        <div class="actions">
+            <button class="btn" type="submit">Save Student</button>
+            <a class="btn btn-outline" href="{% url 'Home-View' %}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    const form = document.getElementById('studentForm');
+
+    // Collects the form into a plain object. The keys here are the exact field
+    // names on the model - that is the contract the serializer validates
+    // against, so a typo in a key would show up as a "required" error.
+    function collect() {
+        return {
+            student_id: document.getElementById('studentId').value.trim(),
+            student_name: document.getElementById('studentName').value.trim(),
+            student_email: document.getElementById('studentEmail').value.trim(),
+            student_ph: document.getElementById('studentPh').value.trim()
+        };
+    }
+
+    form.addEventListener('submit', async function (event) {
+        // Stops the browser's normal form submit, which would reload the page
+        // and throw the response away. From here on we handle it with fetch.
+        event.preventDefault();
+
+        hideAlert('errorAlert');
+        hideAlert('successAlert');
+        clearFieldErrors(form);
+        setBusy(form, true, 'Saving...');
+
+        try {
+            // POST to the same /apis/ URL that GET uses for listing.
+            const created = await apiRequest(API.list, 'POST', collect());
+
+            showAlert('successAlert', 'success', created.student_name + ' added successfully. Redirecting...');
+            form.reset();
+
+            // A short pause so the person actually gets to read the success
+            // message before the page changes.
+            setTimeout(function () {
+                window.location.href = "{% url 'Home-View' %}";
+            }, 1200);
+        } catch (error) {
+            // The API answered 400 with a list of problems. Each one gets
+            // attached to its own field, and the first is also shown in the
+            // banner so it is visible without scrolling.
+            const message = showFieldErrors(form, error.data);
+            showAlert('errorAlert', 'error', message);
+        } finally {
+            setBusy(form, false);
+        }
+    });
+</script>
+{% endblock %}
